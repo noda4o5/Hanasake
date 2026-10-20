@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>おはなの水やり 登録</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Maru+Gothic:wght@700&display=swap">
+<style>
+/* Layout: a single short form, then the two links the family needs, each with what to do with it. */
+:root {
+  --bg: #F3F7F6; --surface: #FFFFFF; --ink: #1F3330; --ink-soft: #566D69; --line: #D3E2DE;
+  --accent: #2E7D6B; --accent-ink: #FFFFFF; --warn-bg: #FFF2D6; --warn-ink: #8A5A00;
+  --font-display: "Zen Maru Gothic", "Noto Sans JP", sans-serif;
+  --font-body: "BIZ UDPGothic", "Noto Sans JP", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #101C1A; --surface: #182826; --ink: #E6F0EE; --ink-soft: #A3B8B4; --line: #2E4642; --accent: #5FBFA6; --accent-ink: #0E1C19; --warn-bg: #3A2E12; --warn-ink: #F2C875; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #101C1A; --surface: #182826; --ink: #E6F0EE; --ink-soft: #A3B8B4; --line: #2E4642; --accent: #5FBFA6; --accent-ink: #0E1C19; --warn-bg: #3A2E12; --warn-ink: #F2C875; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.6; }
+.wrap { max-width: 520px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 40px; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-family: var(--font-display); font-size: 26px; margin: 0; }
+.lead { color: var(--ink-soft); margin: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink-soft); }
+input, select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+button { appearance: none; border: 2px solid var(--accent); background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 11px 20px; font: inherit; font-weight: 700; cursor: pointer; align-self: flex-start; }
+button:disabled { opacity: .6; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+h2 { font-size: 16px; margin: 0; }
+.url { font-size: 13px; word-break: break-all; background: var(--bg); border-radius: 8px; padding: 8px 10px; user-select: all; }
+a { color: var(--accent); }
+.note { font-size: 13px; color: var(--ink-soft); margin: 0; }
+.err { background: var(--warn-bg); color: var(--warn-ink); border-radius: 12px; padding: 12px; }
+</style>
+<link rel="icon" href="/icon-192.png">
+</head>
+<body>
+<main class="wrap">
+  <h1>おはなの水やり 登録</h1>
+  <p class="lead">遠くに住むご家族の「今日も元気」を、毎日の水やりで確かめるしくみです。1家族ごとに登録します。</p>
+
+  <form class="card" id="form">
+    <label for="name">お母さまの画面に出す呼び名（例：みちこさん）<input id="name" maxlength="20" placeholder="お母さん"></label>
+    <label for="emails">お知らせを受け取るメール（カンマ区切りで5つまで）<input id="emails" inputmode="email" required placeholder="you@example.com"></label>
+    <label for="hour">この時刻までに水やりがなければ知らせる<select id="hour"></select></label>
+    <label for="code">登録コード（配った人から聞いている場合）<input id="code" autocomplete="off"></label>
+    <div id="err" class="err" hidden></div>
+    <button type="submit" id="go">登録する</button>
+  </form>
+
+  <section class="card" id="result" hidden>
+    <h2>① お母さまのスマホで開くページ</h2>
+    <div class="url" id="momUrl"></div>
+    <p class="note">LINEなどでお母さまに送り、開いたら Chrome の「︙」→「ホーム画面に追加」をしてあげてください。</p>
+    <h2>② ご家族用のページ</h2>
+    <div class="url" id="famUrl"></div>
+    <p class="note">ここで毎日の様子が見られます。他の人には教えないでください。同じ内容をメールでも送りました。</p>
+    <a id="famLink" href="#">ご家族用ページを開く</a>
+  </section>
+</main>
+
+<script src="/config.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  for (var h = 6; h <= 20; h++) { var o = document.createElement('option'); o.value = h; o.textContent = h + '時'; if (h === 10) o.selected = true; $('hour').appendChild(o); }
+  var API = (window.HANAMIZU_API || '').trim();
+  function api(action, args) {
+    return fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: action, args: args || [] })
+    }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+  }
+  var isServer = !!API;
+
+  $('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    $('err').hidden = true;
+    var s = { name: $('name').value.trim(), emails: $('emails').value, hour: Number($('hour').value), code: $('code').value.trim() };
+    if (!isServer) { $('err').textContent = 'まだ準備中です。config.js に Apps Script のアドレスを入れてください。'; $('err').hidden = false; return; }
+    $('go').disabled = true;
+    api('registerFamily', [s]).then(function (res) {
+      $('go').disabled = false;
+      if (!res || !res.ok) { $('err').textContent = (res && res.error) || '登録できませんでした。'; $('err').hidden = false; return; }
+      $('momUrl').textContent = res.momUrl;
+      $('famUrl').textContent = res.familyUrl;
+      $('famLink').href = res.familyUrl;
+      $('form').hidden = true; $('result').hidden = false;
+    }).catch(function () {
+      $('go').disabled = false;
+      $('err').textContent = '通信できませんでした。もう一度押してください。'; $('err').hidden = false;
+    });
+  });
+})();
+</script>
+</body>
+</html>

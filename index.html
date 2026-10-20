@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>おはなの水やり</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#EAF3F1">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+/* Layout: one narrow column, like a windowsill — greeting on top, the pot in the middle, three big mood buttons under the thumb. */
+:root {
+  --bg: #EAF3F1;
+  --surface: #FFFFFF;
+  --sill: #DCEBE7;
+  --ink: #1F3330;
+  --ink-soft: #4C6460;
+  --line: #C3D8D3;
+  --accent: #2E7D6B;
+  --accent-ink: #FFFFFF;
+  --leaf: #4E9A5B;
+  --leaf-dark: #2F6B3E;
+  --clay: #C8754E;
+  --clay-dark: #A65A39;
+  --soil: #5B4130;
+  --water: #4A9BD6;
+  --chosen: #FFF4CF;
+  --chosen-line: #E2B93B;
+  --font-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Noto Sans JP", sans-serif;
+  --font-body: "BIZ UDPGothic", "Noto Sans JP", "Hiragino Sans", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11201D; --surface: #1A2D29; --sill: #213834; --ink: #E7F1EF; --ink-soft: #A8BEB9;
+    --line: #34514B; --accent: #5FBFA6; --accent-ink: #0E1C19; --leaf: #6DBB78; --leaf-dark: #4C9A58;
+    --clay: #B86B47; --clay-dark: #985335; --soil: #3E2C21; --water: #78B8E8; --chosen: #3A3518; --chosen-line: #D9B23A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11201D; --surface: #1A2D29; --sill: #213834; --ink: #E7F1EF; --ink-soft: #A8BEB9;
+  --line: #34514B; --accent: #5FBFA6; --accent-ink: #0E1C19; --leaf: #6DBB78; --leaf-dark: #4C9A58;
+  --clay: #B86B47; --clay-dark: #985335; --soil: #3E2C21; --water: #78B8E8; --chosen: #3A3518; --chosen-line: #D9B23A;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 20px; line-height: 1.6;
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap {
+  max-width: 480px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.date { font-size: 18px; color: var(--ink-soft); letter-spacing: .04em; }
+h1 {
+  font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1.35;
+  margin: 2px 0 0; text-wrap: balance;
+}
+.garden {
+  position: relative; background: var(--sill); border-radius: 28px;
+  padding: 10px 10px 0; overflow: hidden;
+}
+.garden svg.plant { display: block; width: 100%; max-width: 300px; height: auto; margin: 0 auto; }
+.plant-g { transform-origin: 120px 186px; transition: transform .8s ease; }
+.plant-g.droopy { transform: rotate(-9deg); }
+.plant-g.grow { animation: grow .9s cubic-bezier(.3,1.5,.5,1); }
+@keyframes grow { from { transform: scale(.82); } to { transform: scale(1); } }
+.plant-g.sway { animation: sway 5s ease-in-out infinite; }
+@keyframes sway { 0%,100% { transform: rotate(-1.5deg); } 50% { transform: rotate(1.5deg); } }
+.status-line {
+  text-align: center; font-family: var(--font-display); font-weight: 700;
+  font-size: 22px; padding: 6px 12px 16px; color: var(--ink);
+}
+.status-line small { display: block; font-family: var(--font-body); font-weight: 400; font-size: 17px; color: var(--ink-soft); }
+
+/* watering can + drops */
+.can { position: absolute; top: 14px; right: 18px; width: 92px; opacity: 0; transform: rotate(0deg); transform-origin: 70% 60%; pointer-events: none; }
+.watering .can { animation: can 1.7s ease forwards; }
+@keyframes can { 0% { opacity: 0; transform: translate(20px,-10px) rotate(0); } 20% { opacity: 1; transform: translate(0,0) rotate(-28deg); } 80% { opacity: 1; transform: rotate(-28deg); } 100% { opacity: 0; transform: rotate(0); } }
+.drop { position: absolute; width: 9px; height: 13px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: var(--water); opacity: 0; top: 70px; }
+.watering .drop { animation: drop 1s ease-in infinite; }
+.drop:nth-of-type(2) { left: 52%; animation-delay: .35s !important; }
+.drop:nth-of-type(3) { left: 58%; animation-delay: .6s !important; }
+.drop:nth-of-type(4) { left: 64%; animation-delay: .15s !important; }
+@keyframes drop { 0% { opacity: 0; transform: translateY(0); } 15% { opacity: 1; } 100% { opacity: 0; transform: translateY(110px); } }
+
+.ask { font-family: var(--font-display); font-weight: 700; font-size: 24px; text-align: center; margin: 4px 0 0; }
+.ask-sub { text-align: center; color: var(--ink-soft); font-size: 17px; margin: -8px 0 0; }
+.moods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.mood {
+  appearance: none; border: 3px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: 24px; padding: 14px 4px 12px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font-family: var(--font-display); font-weight: 700; font-size: 21px;
+  min-height: 132px; justify-content: center; transition: transform .12s, border-color .2s, background .2s;
+}
+.mood .face { font-size: 54px; line-height: 1.1; }
+.mood:active { transform: scale(.96); }
+.mood:focus-visible { outline: 4px solid var(--accent); outline-offset: 3px; }
+.mood[aria-pressed="true"] { background: var(--chosen); border-color: var(--chosen-line); }
+.mood:disabled { opacity: .55; }
+
+.done {
+  background: var(--surface); border: 2px solid var(--line); border-radius: 24px;
+  padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 6px; text-align: center;
+}
+.done .big { font-family: var(--font-display); font-weight: 700; font-size: 25px; }
+.done .face-now { font-size: 22px; }
+.done .sent { color: var(--accent); font-weight: 700; font-size: 18px; }
+.textbtn {
+  appearance: none; background: none; border: none; color: var(--ink-soft); text-decoration: underline;
+  font: inherit; font-size: 17px; padding: 10px; cursor: pointer; align-self: center;
+}
+.textbtn:focus-visible { outline: 3px solid var(--accent); border-radius: 8px; }
+
+.album { display: flex; flex-direction: column; gap: 6px; align-items: center; color: var(--ink-soft); font-size: 17px; }
+.album-row { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; min-height: 28px; }
+.album-row svg { width: 28px; height: 28px; }
+.nums { font-variant-numeric: tabular-nums; }
+
+.msg { text-align: center; padding: 18px; border-radius: 20px; background: var(--surface); border: 2px solid var(--line); }
+.err { color: var(--ink); background: var(--chosen); border: 2px solid var(--chosen-line); border-radius: 16px; padding: 12px 14px; text-align: center; font-size: 18px; }
+
+.demo {
+  border: 2px dashed var(--line); border-radius: 18px; padding: 14px; font-size: 15px; color: var(--ink-soft);
+  display: flex; flex-direction: column; gap: 10px; line-height: 1.55;
+}
+.demo strong { color: var(--ink); }
+.demo-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.demo-btns button {
+  appearance: none; border: 2px solid var(--accent); background: var(--surface); color: var(--accent);
+  border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.demo-btns button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .plant-g, .plant-g.grow, .plant-g.sway, .watering .can, .watering .drop { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<main class="wrap" id="app">
+  <header>
+    <div class="date" id="date"></div>
+    <h1 id="greet">おはようございます</h1>
+  </header>
+
+  <section class="garden" id="garden" aria-live="polite">
+    <svg class="can" viewBox="0 0 120 80" aria-hidden="true">
+      <path d="M30 28 h44 a6 6 0 0 1 6 6 v34 a6 6 0 0 1 -6 6 h-44 a6 6 0 0 1 -6 -6 v-34 a6 6 0 0 1 6 -6z" fill="var(--water)"/>
+      <path d="M80 40 L112 22 L116 28 L84 50z" fill="var(--water)"/>
+      <path d="M36 28 q16 -22 32 0" fill="none" stroke="var(--water)" stroke-width="6" stroke-linecap="round"/>
+    </svg>
+    <span class="drop"></span><span class="drop"></span><span class="drop"></span><span class="drop"></span>
+    <div id="plant"></div>
+    <div class="status-line" id="status"></div>
+  </section>
+
+  <div id="err" class="err" hidden></div>
+
+  <section id="askArea">
+    <p class="ask">今日のきぶんは？</p>
+    <p class="ask-sub">押すと、お花にお水があがります</p>
+    <div class="moods" role="group" aria-label="今日のきぶん">
+      <button class="mood" id="mood1" data-mood="1" aria-pressed="false"><span class="face" aria-hidden="true">😊</span>げんき</button>
+      <button class="mood" id="mood2" data-mood="2" aria-pressed="false"><span class="face" aria-hidden="true">🙂</span>ふつう</button>
+      <button class="mood" id="mood3" data-mood="3" aria-pressed="false"><span class="face" aria-hidden="true">😣</span>いまいち</button>
+    </div>
+  </section>
+
+  <section id="doneArea" class="done" hidden>
+    <div class="big">今日のお水、ありがとう</div>
+    <div class="face-now" id="faceNow"></div>
+    <div class="sent">ご家族に伝わりました</div>
+    <button class="textbtn" id="changeMood">きぶんを変える</button>
+  </section>
+
+  <section class="album" id="album" hidden>
+    <div class="album-row" id="albumRow"></div>
+    <div class="nums" id="albumText"></div>
+  </section>
+
+  <section class="msg" id="badUrl" hidden>
+    このページのアドレスが正しくないようです。<br>ご家族にもう一度送ってもらってください。
+  </section>
+
+  <section class="demo" id="demo" hidden>
+    <div><strong>お試し表示です。</strong>気分ボタンを押すと水やりの動きを確かめられます。記録はこの画面の中だけで、どこにも送られません。</div>
+    <div class="demo-btns">
+      <button id="demoNext">次の日にする</button>
+      <button id="demoSkip">2日あけて次の日にする</button>
+      <button id="demoReset">最初からにする</button>
+    </div>
+  </section>
+</main>
+
+<script src="/config.js"></script>
+<script>
+(function () {
+  var FLOWERS = [
+    { name: 'ひまわり', petal: '#F2B705', center: '#7A4B1E', n: 14, w: 6, len: 24 },
+    { name: 'さくらそう', petal: '#EE8FB0', center: '#FCE38A', n: 5, w: 13, len: 22 },
+    { name: 'あさがお', petal: '#7F8FE8', center: '#F4F6FF', n: 5, w: 14, len: 22 },
+    { name: 'ガーベラ', petal: '#F27D52', center: '#5A3A26', n: 12, w: 6, len: 24 }
+  ];
+  var MOODS = { 1: { e: '😊', t: 'げんき' }, 2: { e: '🙂', t: 'ふつう' }, 3: { e: '😣', t: 'いまいち' } };
+  var DAYS = 7; // 7日で1つ花が咲く
+
+  var $ = function (id) { return document.getElementById(id); };
+  var API = (window.HANAMIZU_API || '').trim();
+  function api(action, args) {
+    return fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: action, args: args || [] })
+    }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+  }
+  var isServer = !!API;
+  var FAMILY_KEY = 'hanamizu-family';
+  var familyId = null;
+  var state = null;
+  var busy = false;
+
+  // ---------- 日付とあいさつ ----------
+  function setHeader(name) {
+    var d = new Date();
+    var w = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+    $('date').textContent = (d.getMonth() + 1) + '月' + d.getDate() + '日（' + w + '）';
+    var h = d.getHours();
+    var g = h < 10 ? 'おはようございます' : h < 17 ? 'こんにちは' : 'こんばんは';
+    $('greet').textContent = name ? name + '、' + g : g;
+  }
+
+  // ---------- 植物の絵 ----------
+  function stageOf(total) {
+    if (!total) return { p: 0, type: 0, bloomed: 0 };
+    return { p: ((total - 1) % DAYS) + 1, type: Math.floor((total - 1) / DAYS) % FLOWERS.length, bloomed: Math.floor(total / DAYS) };
+  }
+  function leaf(cx, cy, rx, ry, deg) {
+    return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '" transform="rotate(' + deg + ' ' + cx + ' ' + cy + ')" fill="var(--leaf)"/>';
+  }
+  function flowerHead(cx, cy, f, scale) {
+    var s = scale || 1, out = '';
+    for (var i = 0; i < f.n; i++) {
+      var a = i * 360 / f.n;
+      out += '<ellipse cx="' + cx + '" cy="' + (cy - f.len * 0.55 * s) + '" rx="' + (f.w * s) + '" ry="' + (f.len * 0.6 * s) + '" transform="rotate(' + a + ' ' + cx + ' ' + cy + ')" fill="' + f.petal + '"/>';
+    }
+    out += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (10 * s) + '" fill="' + f.center + '"/>';
+    return out;
+  }
+  function plantSVG(p, type, droopy, anim) {
+    var f = FLOWERS[type];
+    var H = [0, 18, 36, 56, 78, 96, 106, 114][p];
+    var base = 186, top = base - H;
+    var g = '';
+    if (p === 0) {
+      g += '<ellipse cx="120" cy="178" rx="16" ry="5" fill="var(--soil)"/><ellipse cx="120" cy="174" rx="6" ry="4" fill="var(--leaf-dark)"/>';
+    } else {
+      g += '<path d="M120 ' + base + ' Q 113 ' + (base - H / 2) + ' 120 ' + top + '" fill="none" stroke="var(--leaf-dark)" stroke-width="5" stroke-linecap="round"/>';
+      if (p === 1) {
+        g += leaf(113, top + 2, 8, 4, -30) + leaf(127, top + 2, 8, 4, 30);
+      } else {
+        var y1 = base - H * 0.58;
+        var sz = p >= 3 ? 1.2 : 0.9;
+        g += leaf(120 - 15 * sz, y1, 15 * sz, 7 * sz, -28) + leaf(120 + 15 * sz, y1 - 4, 15 * sz, 7 * sz, 28);
+        if (p >= 4) {
+          var y2 = base - H * 0.3;
+          g += leaf(100, y2, 19, 8, -18) + leaf(140, y2 - 3, 19, 8, 18);
+        }
+        if (p === 5) {
+          g += '<ellipse cx="120" cy="' + (top - 6) + '" rx="7" ry="11" fill="var(--leaf-dark)"/>';
+        } else if (p === 6) {
+          g += '<ellipse cx="120" cy="' + (top - 9) + '" rx="8" ry="14" fill="' + f.petal + '"/>' +
+               '<path d="M110 ' + (top + 2) + ' Q120 ' + (top - 10) + ' 130 ' + (top + 2) + ' Z" fill="var(--leaf-dark)"/>';
+        } else if (p === 7) {
+          g += flowerHead(120, top - 10, f, 1.15);
+          g += '<g fill="' + f.petal + '" opacity=".8"><circle cx="70" cy="' + (top - 4) + '" r="3"/><circle cx="172" cy="' + (top + 10) + '" r="2.5"/><circle cx="160" cy="' + (top - 34) + '" r="2"/></g>';
+        }
+      }
+    }
+    var cls = 'plant-g' + (droopy ? ' droopy' : '') + (anim ? ' grow' : (!droopy && p > 0 ? ' sway' : ''));
+    return '<svg class="plant" viewBox="0 30 240 228" role="img" aria-label="鉢植えのお花">' +
+      '<g class="' + cls + '">' + g + '</g>' +
+      '<rect x="54" y="180" width="132" height="16" rx="5" fill="var(--clay-dark)"/>' +
+      '<ellipse cx="120" cy="186" rx="58" ry="5" fill="var(--soil)"/>' +
+      '<path d="M62 196 H178 L166 252 H74 Z" fill="var(--clay)"/>' +
+      '</svg>';
+  }
+  function miniFlower(type) {
+    var f = FLOWERS[type % FLOWERS.length];
+    return '<svg viewBox="0 0 40 40" aria-hidden="true">' + flowerHead(20, 20, { petal: f.petal, center: f.center, n: f.n, w: f.w * 0.55, len: f.len * 0.62 }, 1).replace(/r="10"/, 'r="5.5"') + '</svg>';
+  }
+
+  // ---------- 画面の描画 ----------
+  function render(anim) {
+    if (!state) return;
+    var st = stageOf(state.totalDays);
+    var droopy = !state.todayDone && state.daysSinceLast !== null && state.daysSinceLast >= 2;
+    $('plant').innerHTML = plantSVG(st.p, st.type, droopy, anim);
+
+    var f = FLOWERS[st.type];
+    var line, sub;
+    if (st.p === 0) { line = 'たねをまきました'; sub = 'お水をあげると芽が出ます'; }
+    else if (st.p === DAYS) { line = f.name + 'が咲きました！'; sub = state.todayDone ? '明日から新しいたねを育てます' : 'きれいに咲いています'; }
+    else if (droopy) { line = 'お水を待っていました'; sub = 'あと' + (DAYS - st.p) + '日で花が咲きます'; }
+    else { line = 'あと' + (DAYS - st.p) + '日で花が咲きます'; sub = st.p >= 5 ? 'つぼみがふくらんできました' : st.p >= 2 ? '葉っぱが元気にのびています' : '小さな芽が出ました'; }
+    $('status').innerHTML = line + '<small>' + sub + '</small>';
+
+    var showAsk = !state.todayDone || state.changing;
+    $('askArea').hidden = !showAsk;
+    $('doneArea').hidden = showAsk;
+    [1, 2, 3].forEach(function (m) {
+      $('mood' + m).setAttribute('aria-pressed', String(state.todayDone && state.todayMood === m));
+    });
+    if (state.todayDone && MOODS[state.todayMood]) {
+      $('faceNow').textContent = '今日のきぶん　' + MOODS[state.todayMood].e + ' ' + MOODS[state.todayMood].t;
+    }
+
+    $('album').hidden = state.totalDays === 0;
+    var bloomed = st.bloomed, row = '';
+    for (var i = 0; i < Math.min(bloomed, 12); i++) row += miniFlower(i);
+    if (bloomed > 12) row += '<span>＋' + (bloomed - 12) + '</span>';
+    $('albumRow').innerHTML = row;
+    $('albumText').textContent = 'お水をあげた日 ' + state.totalDays + '日' + (bloomed ? '　咲いたお花 ' + bloomed + 'つ' : '');
+  }
+
+  function showError(t) { var e = $('err'); e.textContent = t; e.hidden = !t; }
+  function setBusy(b) { busy = b; [1, 2, 3].forEach(function (m) { $('mood' + m).disabled = b; }); }
+
+  function playWatering(done) {
+    var g = $('garden');
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { done(); return; }
+    g.classList.add('watering');
+    setTimeout(function () { g.classList.remove('watering'); done(); }, 1700);
+  }
+
+  // ---------- 押したとき ----------
+  function onMood(m) {
+    if (busy || !state) return;
+    showError('');
+    var firstToday = !state.todayDone;
+    setBusy(true);
+    var finished = false, result = null, animDone = !firstToday;
+    function finish() {
+      if (!result || !animDone || finished) return;
+      finished = true;
+      state = result; state.changing = false;
+      setBusy(false);
+      render(firstToday);
+    }
+    if (firstToday) playWatering(function () { animDone = true; finish(); });
+    save(m, function (res) { result = res; finish(); }, function () {
+      setBusy(false);
+      showError('うまく届きませんでした。電波のよいところで、もう一度押してください。');
+    });
+  }
+
+  // ---------- サーバー／お試し ----------
+  function load() {
+    if (isServer) {
+      var q = new URLSearchParams(location.search).get('f');
+      // ホーム画面のアイコンから開いたときは、最初に開いたときの家族IDを使う
+      try { if (q) localStorage.setItem(FAMILY_KEY, q); else q = localStorage.getItem(FAMILY_KEY); } catch (e) {}
+      familyId = q;
+      if (!familyId) { badUrl(); return; }
+      refresh();
+    } else {
+      demoLoad(); setHeader(''); render(false);
+      $('demo').hidden = false;
+    }
+  }
+  function refresh() {
+    api('getMomState', [familyId]).then(function (res) {
+      if (!res || !res.ok) { badUrl(); return; }
+      state = res; showError(''); setHeader(res.name); render(false);
+    }).catch(function () {
+      showError('読みこめませんでした。電波のよいところで開きなおしてください。');
+    });
+  }
+  function save(m, ok, ng) {
+    if (isServer) {
+      api('checkIn', [familyId, m]).then(function (res) { res && res.ok ? ok(res) : ng(); }).catch(ng);
+    } else {
+      var s = JSON.parse(JSON.stringify(state));
+      if (!s.todayDone) { s.totalDays += 1; s.todayDone = true; s.daysSinceLast = 0; }
+      s.todayMood = m;
+      demoSave(s);
+      setTimeout(function () { ok(s); }, 400);
+    }
+  }
+  function badUrl() {
+    ['garden', 'askArea', 'doneArea', 'album'].forEach(function (id) { $(id).hidden = true; });
+    $('badUrl').hidden = false;
+  }
+
+  var DEMO_KEY = 'hanamizu-demo';
+  function demoLoad() {
+    try { var raw = localStorage.getItem(DEMO_KEY); if (raw) { state = JSON.parse(raw); return; } } catch (e) {}
+    state = { ok: true, name: '', totalDays: 4, todayDone: false, todayMood: null, daysSinceLast: 1 };
+  }
+  function demoSave(s) { try { localStorage.setItem(DEMO_KEY, JSON.stringify(s)); } catch (e) {} }
+  function demoNextDay(gap) {
+    var since = state.todayDone ? gap : (state.daysSinceLast || 0) + gap;
+    state = { ok: true, name: '', totalDays: state.totalDays, todayDone: false, todayMood: null, daysSinceLast: since };
+    demoSave(state); render(false);
+  }
+
+  // ---------- つなぎこみ ----------
+  [1, 2, 3].forEach(function (m) { $('mood' + m).addEventListener('click', function () { onMood(m); }); });
+  $('changeMood').addEventListener('click', function () { state.changing = true; render(false); });
+  $('demoNext').addEventListener('click', function () { demoNextDay(1); });
+  $('demoSkip').addEventListener('click', function () { demoNextDay(3); });
+  $('demoReset').addEventListener('click', function () {
+    state = { ok: true, name: '', totalDays: 0, todayDone: false, todayMood: null, daysSinceLast: null };
+    demoSave(state); render(false);
+  });
+  // 次の日にアプリを開きなおしたとき、前の日の表示のままにならないよう読みなおす
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    setHeader(state && state.name);
+    if (isServer && familyId && !busy) refresh();
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
