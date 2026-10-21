@@ -57,6 +57,14 @@ form { display: flex; flex-direction: column; gap: 12px; }
 .note { font-size: 13px; color: var(--ink-soft); }
 .toast { font-size: 14px; color: var(--accent); min-height: 1.4em; }
 .err { background: var(--wait-bg); color: var(--wait-ink); border-radius: 12px; padding: 12px; }
+.chip { display: inline-block; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 2px 10px; }
+.chip.on { background: var(--ok-bg); color: var(--ok-ink); }
+.chip.off { background: var(--pause-bg); color: var(--pause-ink); }
+details { font-size: 14px; }
+details summary { cursor: pointer; color: var(--accent); font-weight: 700; padding: 4px 0; }
+details ol { margin: 8px 0 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; color: var(--ink-soft); }
+details a { color: var(--accent); }
+.subtle { font-size: 13px; color: var(--ink-soft); }
 </style>
 <meta name="robots" content="noindex">
 <link rel="icon" href="/icon-192.png">
@@ -81,6 +89,32 @@ form { display: flex; flex-direction: column; gap: 12px; }
       <span class="note">旅行や入院などで水やりできない日に</span>
     </div>
     <div class="toast" id="pauseToast"></div>
+  </section>
+
+  <section class="card">
+    <h2>LINE で朝のお知らせ</h2>
+    <form id="lineForm">
+      <div class="row"><span class="chip off" id="lineChip">まだ設定していません</span><span class="subtle" id="lineState"></span></div>
+      <label for="lHour">お母さまに送る時刻<select id="lHour"></select></label>
+      <label for="lToken">LINE 公式アカウントの「チャネルアクセストークン（長期）」<input id="lToken" type="password" autocomplete="off" placeholder="変えるときだけ貼り付け"></label>
+      <div class="row">
+        <button class="btn" type="submit">保存する</button>
+        <button class="btn ghost" type="button" id="lTest">いま試しに送る</button>
+        <button class="btn ghost" type="button" id="lOff" hidden>LINE をやめる</button>
+      </div>
+      <div class="toast" id="lineToast"></div>
+      <p class="note">その日のお水がまだのときだけ送ります。すでにお水をあげた日や、通知を止めた日は送りません。送る時刻は「8時台」のように1時間の幅があります。</p>
+      <details>
+        <summary>LINE 公式アカウントの準備のしかた</summary>
+        <ol>
+          <li><a href="https://manager.line.biz/" target="_blank" rel="noopener">LINE Official Account Manager</a> で公式アカウントを無料で作ります（名前は「おはなの水やり」など、お母さまに分かるものに）。</li>
+          <li>アカウントの「設定」→「Messaging API」→「Messaging API を利用する」を押します。</li>
+          <li><a href="https://developers.line.biz/console/" target="_blank" rel="noopener">LINE Developers</a> でそのチャネルを開き、「Messaging API設定」の一番下「チャネルアクセストークン（長期）」で「発行」を押して、出た文字列をここに貼り付けます。</li>
+          <li>「応答設定」で「応答メッセージ」をオフにします（お母さまが返信しても自動の決まり文句が返らないように）。</li>
+          <li>アカウントの友だち追加のQRコードかリンクを、お母さまの LINE で追加してもらいます。</li>
+        </ol>
+      </details>
+    </form>
   </section>
 
   <section class="card">
@@ -123,6 +157,7 @@ form { display: flex; flex-direction: column; gap: 12px; }
   var fid, key, st;
 
   for (var h = 6; h <= 20; h++) { var o = document.createElement('option'); o.value = h; o.textContent = h + '時'; $('sHour').appendChild(o); }
+  for (var lh = 5; lh <= 12; lh++) { var o2 = document.createElement('option'); o2.value = lh; o2.textContent = lh + '時台'; $('lHour').appendChild(o2); }
 
   function call(fn, args, ok) {
     if (!isServer) { ok(st); return; }
@@ -161,7 +196,14 @@ form { display: flex; flex-direction: column; gap: 12px; }
     $('pauseBtn').textContent = s.pausedToday ? '止めた通知を元にもどす' : '今日は通知を止める';
     $('momUrl').textContent = s.momUrl;
     $('sName').value = s.name; $('sEmails').value = s.emails; $('sHour').value = String(s.hour);
+    $('lHour').value = String(s.lineHour || 8);
+    $('lineChip').className = 'chip ' + (s.lineOn ? 'on' : 'off');
+    $('lineChip').textContent = s.lineOn ? '送っています' : 'まだ設定していません';
+    $('lineState').textContent = s.lineOn ? ((s.lineName ? '「' + s.lineName + '」から　' : '') + (s.lineSentToday ? '今朝も送りました' : '毎朝 ' + (s.lineHour || 8) + '時台')) : '';
+    $('lTest').hidden = !s.lineOn; $('lOff').hidden = !s.lineOn;
+    $('lToken').value = '';
   }
+  function lineToast(t) { $('lineToast').textContent = t; }
 
   $('pauseBtn').addEventListener('click', function () {
     var on = !st.pausedToday;
@@ -199,6 +241,30 @@ form { display: flex; flex-direction: column; gap: 12px; }
     });
   });
 
+  $('lineForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var token = $('lToken').value.trim(), hour = Number($('lHour').value);
+    if (!st.lineOn && !token) { lineToast('トークンを貼り付けてから保存してください'); return; }
+    lineToast('確かめています…');
+    call('setLine', [fid, key, { token: token, hour: hour }], function (res) {
+      if (!isServer) { res.lineOn = true; res.lineHour = hour; res.lineName = '（見本）おはなの水やり'; }
+      render(res); lineToast('保存しました');
+    });
+  });
+  $('lTest').addEventListener('click', function () {
+    lineToast('送っています…');
+    call('testLine', [fid, key], function (res) { render(res); lineToast(res.message || '送りました'); });
+  });
+  $('lOff').addEventListener('click', function () {
+    call('setLine', [fid, key, { off: true, hour: Number($('lHour').value) }], function (res) {
+      if (!isServer) { res.lineOn = false; res.lineName = ''; }
+      render(res); lineToast('LINE のお知らせをやめました');
+    });
+  });
+  // エラーのときは「確かめています…」を消す
+  var _showErr = showErr;
+  showErr = function (t) { if (t) lineToast(''); _showErr(t); if (t) $('err').scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+
   if (isServer) {
     var q = new URLSearchParams(location.search);
     fid = q.get('f'); key = q.get('k');
@@ -212,7 +278,7 @@ form { display: flex; flex-direction: column; gap: 12px; }
       var m = sample[13 - i];
       recent.push({ date: d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(), mood: m, time: m ? '8:1' + (i % 10) : null });
     }
-    render({ ok: true, name: '（見本）お母さん', emails: 'example@example.com', hour: 10, pausedToday: false, today: null, lastAt: '昨日 8:10', recent: recent, momUrl: location.origin + '/?f=…', nowHour: today.getHours() });
+    render({ ok: true, name: '（見本）お母さん', emails: 'example@example.com', hour: 10, pausedToday: false, today: null, lastAt: '昨日 8:10', recent: recent, momUrl: location.origin + '/?f=…', nowHour: today.getHours(), lineOn: false, lineHour: 8, lineName: '', lineSentToday: false });
   }
 })();
 </script>
